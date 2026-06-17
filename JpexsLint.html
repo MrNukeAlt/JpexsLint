@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FFDec Lint (Line Numbers & Errors)</title>
+    <title>FFDec Lint (Persistent Themes & Error Highlighting)</title>
     <style>
         /* Base Defaults */
         :root {
             --bg-main: #d4d0c8; --bg-panel: #ffffff; --text-main: #000000;
             --border-color: #808080; --toolbar-bg: #ece9d8;
             --btn-bg: #e1dfd0; --btn-border: #000000; --btn-text: #000000;
-            --err-bg: #ffcccc; /* The Light Red Highlight */
+            --err-bg: #ffcccc; /* Light Red Highlight */
         }
 
-        /* --- ALL 27 THEMES RESTORED --- */
+        /* --- THEME DEFINITIONS --- */
         .theme-oceanic { --bg-main: #67a1c8; --bg-panel: #e0f0ff; --text-main: #003366; --toolbar-bg: #4a8bb8; --btn-bg: #bcd8ea; --btn-border: #4a8bb8; --btn-text: #000; }
         .theme-autumn { --bg-main: #d8a15e; --bg-panel: #fff0d9; --text-main: #5d3a1a; --toolbar-bg: #c18844; --btn-bg: #f5d3a0; --btn-border: #8b5a2b; --btn-text: #5d3a1a; }
         .theme-business { --bg-main: #c0c0c0; --bg-panel: #ffffff; --text-main: #000000; --toolbar-bg: #e0e0e0; --btn-bg: #ececec; --btn-border: #767676; --btn-text: #000; }
@@ -44,23 +44,23 @@
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-main); color: var(--text-main); padding: 15px; margin: 0; transition: background 0.3s; }
         .header { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; }
         
-        /* New Editor Layout */
         .editor-container { display: flex; border: 1px solid var(--border-color); background: var(--bg-panel); min-height: 350px; }
-        #line-numbers { width: 35px; background: #e9e9e9; color: #888; text-align: right; padding: 10px 5px; font-family: 'Consolas', monospace; font-size: 14px; user-select: none; line-height: 1.5; }
+        #line-numbers { width: 40px; background: #e9e9e9; color: #888; text-align: right; padding: 10px 5px; font-family: 'Consolas', monospace; font-size: 14px; user-select: none; line-height: 1.5; }
         #code { flex-grow: 1; padding: 10px; font-family: 'Consolas', monospace; font-size: 14px; white-space: pre; overflow-x: auto; outline: none; line-height: 1.5; color: var(--text-main); }
-        .error-line { background-color: var(--err-bg); display: block; width: 100%; }
+        .error-line { background-color: var(--err-bg); display: block; }
 
-        .toolbar { background: var(--toolbar-bg); padding: 10px; border: 1px solid var(--border-color); margin-bottom: 5px; }
-        button { background: var(--btn-bg); border: 1px solid var(--btn-border); padding: 5px 15px; cursor: pointer; color: var(--btn-text); margin-right: 5px; }
+        .toolbar { background: var(--toolbar-bg); padding: 10px; border: 1px solid var(--border-color); margin-bottom: 5px; display: flex; flex-wrap: wrap; gap: 5px; }
+        button { background: var(--btn-bg); border: 1px solid var(--btn-border); padding: 5px 15px; cursor: pointer; color: var(--btn-text); }
         button:hover { filter: brightness(1.1); }
         #log { border: 1px solid var(--border-color); padding: 10px; background: var(--bg-panel); margin-top: 5px; font-size: 0.9em; }
+        .hidden { display: none; }
     </style>
 </head>
 <body class="theme-business">
 
     <div class="header">
         <strong>FFDec Lint</strong>
-        <select onchange="document.body.className = 'theme-' + this.value">
+        <select id="theme-select" onchange="changeTheme(this.value)">
             <option value="business">Business</option>
             <option value="oceanic">Oceanic</option>
             <option value="autumn">Autumn</option>
@@ -93,23 +93,44 @@
 
     <div class="toolbar">
         <button id="modeBtn" onclick="toggleMode()">Mode: ActionScript</button>
-        <button onclick="sanitize()">1. Strip Metadata</button>
-        <button onclick="checkStructure()">2. Check Braces</button>
-        <button onclick="clearFormatting()" style="color:red">Clear Errors</button>
+        <span id="as-tools">
+            <button onclick="sanitize()">Strip Metadata</button>
+            <button onclick="checkStructure()">Check Braces</button>
+            <button onclick="stripTraces()">Strip Traces</button>
+        </span>
+        <span id="pcode-tools" class="hidden">
+            <button onclick="verifyPCode()">Verify Syntax</button>
+            <button onclick="cleanLabels()">Clean Labels</button>
+        </span>
         <button onclick="copyToClipboard()">Copy</button>
+        <button onclick="clearFormatting()" style="color:red">Clear Errors</button>
     </div>
 
     <div class="editor-container">
         <div id="line-numbers">1</div>
-        <div id="code" contenteditable="plaintext-only" spellcheck="false" oninput="updateLineNumbers()"></div>
+        <div id="code" contenteditable="true" spellcheck="false" oninput="updateLineNumbers()"></div>
     </div>
     
     <div id="log">Status: Ready.</div>
 
     <script>
+        // --- Theme Persistence ---
+        function changeTheme(themeName) {
+            document.body.className = 'theme-' + themeName;
+            localStorage.setItem('ffdec-saved-theme', themeName);
+        }
+
+        window.onload = () => {
+            // Apply saved theme
+            const savedTheme = localStorage.getItem('ffdec-saved-theme') || 'business';
+            document.body.className = 'theme-' + savedTheme;
+            document.getElementById('theme-select').value = savedTheme;
+            updateLineNumbers();
+        };
+
+        // --- Editor Logic ---
         let isPCode = false;
 
-        // Sync line numbers
         function updateLineNumbers() {
             const code = document.getElementById('code');
             const lines = code.innerText.split('\n').length;
@@ -118,11 +139,9 @@
             document.getElementById('line-numbers').innerHTML = numbers;
         }
 
-        // Highlight a line (0-indexed)
         function highlightError(lineIndex) {
             const codeEl = document.getElementById('code');
             let lines = codeEl.innerText.split('\n');
-            
             if (lineIndex >= 0 && lineIndex < lines.length) {
                 lines[lineIndex] = `<span class="error-line">${lines[lineIndex]}</span>`;
                 codeEl.innerHTML = lines.join('\n');
@@ -132,7 +151,7 @@
 
         function clearFormatting() {
             const codeEl = document.getElementById('code');
-            codeEl.innerText = codeEl.innerText; // Removes spans
+            codeEl.innerText = codeEl.innerText;
             updateLineNumbers();
             log("Formatting cleared.", "black");
         }
@@ -140,52 +159,66 @@
         function toggleMode() {
             isPCode = !isPCode;
             const btn = document.getElementById('modeBtn');
+            const asTools = document.getElementById('as-tools');
+            const pcodeTools = document.getElementById('pcode-tools');
+            
             if (isPCode) {
                 btn.innerText = "Mode: P-code";
-                log("Switched to P-code mode.", "orange");
+                asTools.classList.add('hidden');
+                pcodeTools.classList.remove('hidden');
             } else {
                 btn.innerText = "Mode: ActionScript";
-                log("Switched to ActionScript mode.", "green");
+                asTools.classList.remove('hidden');
+                pcodeTools.classList.add('hidden');
             }
         }
 
         function log(msg, color) { const div = document.getElementById('log'); div.innerText = "Status: " + msg; div.style.color = color || 'inherit'; }
 
-        function sanitize() {
-            let code = document.getElementById('code').innerText;
-            const pattern = /\/\*\*[\s\S]*?@identifier[\s\S]*?\*\//gm;
-            document.getElementById('code').innerText = code.replace(pattern, '');
-            updateLineNumbers();
-            log("Metadata stripped!", "green");
-        }
-
+        // --- Logic Functions ---
         function checkStructure() {
-            if (isPCode) {
-                log("Skipping check: Braces not applicable for P-code.", "orange");
-                return;
-            }
             let text = document.getElementById('code').innerText;
             let lines = text.split('\n');
             let open = (text.match(/{/g) || []).length;
             let close = (text.match(/}/g) || []).length;
             
             if (open !== close) {
-                // Highlight the last line if balance is off
                 highlightError(lines.length - 1);
                 log(`STRUCTURAL ERROR: Open '{' (${open}) vs Close '}' (${close})`, "red");
-            } else {
-                log("Structure OK (Braces balanced).", "green");
-            }
+            } else log("Structure OK.", "green");
+        }
+
+        function verifyPCode() {
+            let code = document.getElementById('code').innerText;
+            if (!/push|pop|call/i.test(code)) {
+                highlightError(0);
+                log("Syntax Error: No bytecode detected.", "red");
+            } else log("Syntax OK.", "green");
+        }
+
+        function sanitize() {
+            let code = document.getElementById('code').innerText;
+            document.getElementById('code').innerText = code.replace(/\/\*\*[\s\S]*?@identifier[\s\S]*?\*\//gm, '');
+            updateLineNumbers();
+        }
+
+        function stripTraces() {
+            let code = document.getElementById('code').innerText;
+            document.getElementById('code').innerText = code.replace(/trace\(.*?\);?/g, '');
+            updateLineNumbers();
+        }
+
+        function cleanLabels() {
+            let code = document.getElementById('code').innerText;
+            document.getElementById('code').innerText = code.replace(/label\d+/g, 'label');
+            updateLineNumbers();
         }
 
         function copyToClipboard() {
             const code = document.getElementById('code').innerText;
             navigator.clipboard.writeText(code);
-            log("Copied to clipboard!", "green");
+            log("Copied!", "green");
         }
-
-        // Init
-        updateLineNumbers();
     </script>
 </body>
 </html>
