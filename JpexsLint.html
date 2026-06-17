@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FFDec Lint (Dynamic Tools)</title>
+    <style>
+        /* Base Defaults */
+        :root {
+            --bg-main: #d4d0c8; --bg-panel: #ffffff; --text-main: #000000;
+            --border-color: #808080; --toolbar-bg: #ece9d8;
+            --btn-bg: #e1dfd0; --btn-border: #000000; --btn-text: #000000;
+        }
+
+        /* --- THEME DEFINITIONS --- */
+        .theme-oceanic { --bg-main: #67a1c8; --bg-panel: #e0f0ff; --text-main: #003366; --toolbar-bg: #4a8bb8; --btn-bg: #bcd8ea; --btn-border: #4a8bb8; --btn-text: #000; }
+        .theme-autumn { --bg-main: #d8a15e; --bg-panel: #fff0d9; --text-main: #5d3a1a; --toolbar-bg: #c18844; --btn-bg: #f5d3a0; --btn-border: #8b5a2b; --btn-text: #5d3a1a; }
+        .theme-business { --bg-main: #c0c0c0; --bg-panel: #ffffff; --text-main: #000000; --toolbar-bg: #e0e0e0; --btn-bg: #ececec; --btn-border: #767676; --btn-text: #000; }
+        .theme-business-black-steel { --bg-main: #2b3e50; --bg-panel: #f0f0f0; --text-main: #111; --toolbar-bg: #3d5a73; --btn-bg: #5a7d9d; --btn-border: #111; --btn-text: #fff; }
+        .theme-business-blue-steel { --bg-main: #4a6d8c; --bg-panel: #eef2f5; --text-main: #05141f; --toolbar-bg: #6088ad; --btn-bg: #89aabf; --btn-border: #05141f; --btn-text: #fff; }
+        .theme-challenger-deep { --bg-main: #0f1626; --bg-panel: #1b263b; --text-main: #e0e1dd; --toolbar-bg: #111e30; --btn-bg: #2b3a4e; --btn-border: #444; --btn-text: #fff; }
+        .theme-creme { --bg-main: #f5f5dc; --bg-panel: #ffffff; --text-main: #4b3621; --toolbar-bg: #e6e6cc; --btn-bg: #fffbf0; --btn-border: #9b8a78; --btn-text: #4b3621; }
+        .theme-creme-coffee { --bg-main: #6f4e37; --bg-panel: #fdf5e6; --text-main: #3e2723; --toolbar-bg: #8d6e63; --btn-bg: #a1887f; --btn-border: #3e2723; --btn-text: #fff; }
+        .theme-dust { --bg-main: #d2b48c; --bg-panel: #f5f5dc; --text-main: #5d4037; --toolbar-bg: #c1a070; --btn-bg: #e6ccaa; --btn-border: #5d4037; --btn-text: #000; }
+        .theme-dust-coffee { --bg-main: #6f4e37; --bg-panel: #fdf5e6; --text-main: #3e2723; --toolbar-bg: #8d6e63; --btn-bg: #bcaaa4; --btn-border: #3e2723; --btn-text: #fff; }
+        .theme-emerald-dusk { --bg-main: #004d40; --bg-panel: #e0f2f1; --text-main: #00695c; --toolbar-bg: #00796b; --btn-bg: #26a69a; --btn-border: #004d40; --btn-text: #fff; }
+        .theme-gemini { --bg-main: #4a148c; --bg-panel: #ede7f6; --text-main: #311b92; --toolbar-bg: #5e35b1; --btn-bg: #7e57c2; --btn-border: #311b92; --btn-text: #fff; }
+        .theme-graphite { --bg-main: #424242; --bg-panel: #eeeeee; --text-main: #212121; --toolbar-bg: #616161; --btn-bg: #bdbdbd; --btn-border: #212121; --btn-text: #000; }
+        .theme-graphite-aqua { --bg-main: #455a64; --bg-panel: #e0f7fa; --text-main: #006064; --toolbar-bg: #546e7a; --btn-bg: #80cbc4; --btn-border: #006064; --btn-text: #000; }
+        .theme-graphite-glass { --bg-main: #607d8b; --bg-panel: #eceff1; --text-main: #263238; --toolbar-bg: #78909c; --btn-bg: #b0bec5; --btn-border: #263238; --btn-text: #000; }
+        .theme-magellan { --bg-main: #006064; --bg-panel: #e0f7fa; --text-main: #006064; --toolbar-bg: #00838f; --btn-bg: #4dd0e1; --btn-border: #006064; --btn-text: #000; }
+        .theme-mariner { --bg-main: #0277bd; --bg-panel: #e1f5fe; --text-main: #01579b; --toolbar-bg: #039be5; --btn-bg: #4fc3f7; --btn-border: #01579b; --btn-text: #000; }
+        .theme-mist-aqua { --bg-main: #b2dfdb; --bg-panel: #ffffff; --text-main: #004d40; --toolbar-bg: #80cbc4; --btn-bg: #e0f2f1; --btn-border: #004d40; --btn-text: #000; }
+        .theme-mist-silver { --bg-main: #cfd8dc; --bg-panel: #ffffff; --text-main: #37474f; --toolbar-bg: #b0bec5; --btn-bg: #eceff1; --btn-border: #37474f; --btn-text: #000; }
+        .theme-moderate { --bg-main: #9e9e9e; --bg-panel: #f5f5f5; --text-main: #212121; --toolbar-bg: #bdbdbd; --btn-bg: #e0e0e0; --btn-border: #212121; --btn-text: #000; }
+        .theme-nebula { --bg-main: #512da8; --bg-panel: #ede7f6; --text-main: #311b92; --toolbar-bg: #673ab7; --btn-bg: #9575cd; --btn-border: #311b92; --btn-text: #fff; }
+        .theme-nebula-brick-wall { --bg-main: #bf360c; --bg-panel: #fbe9e7; --text-main: #bf360c; --toolbar-bg: #d84315; --btn-bg: #ff8a65; --btn-border: #bf360c; --btn-text: #fff; }
+        .theme-office-black-2007 { --bg-main: #333333; --bg-panel: #e0e0e0; --text-main: #ffffff; --toolbar-bg: #000000; --btn-bg: #555; --btn-border: #000; --btn-text: #fff; }
+        .theme-office-blue-2007 { --bg-main: #005a9e; --bg-panel: #dceefc; --text-main: #002244; --toolbar-bg: #4a8dc7; --btn-bg: #8bb0d0; --btn-border: #002244; --btn-text: #000; }
+        .theme-office-silver-2007 { --bg-main: #c0c0c0; --bg-panel: #f0f0f0; --text-main: #333333; --toolbar-bg: #dcdcdc; --btn-bg: #e8e8e8; --btn-border: #333333; --btn-text: #000; }
+        .theme-raven-sahara { --bg-main: #263238; --bg-panel: #fff3e0; --text-main: #bf360c; --toolbar-bg: #37474f; --btn-bg: #546e7a; --btn-border: #bf360c; --btn-text: #fff; }
+        .theme-twilight { --bg-main: #311b92; --bg-panel: #e8eaf6; --text-main: #1a237e; --toolbar-bg: #5c6bc0; --btn-bg: #7986cb; --btn-border: #1a237e; --btn-text: #fff; }
+
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-main); color: var(--text-main); padding: 15px; margin: 0; transition: background 0.3s; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; }
+        textarea { width: 100%; height: 350px; font-family: 'Consolas', monospace; background-color: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-color); padding: 10px; box-sizing: border-box; }
+        .toolbar { background: var(--toolbar-bg); padding: 10px; border: 1px solid var(--border-color); margin-bottom: 5px; }
+        button { background: var(--btn-bg); border: 1px solid var(--btn-border); padding: 5px 15px; cursor: pointer; color: var(--btn-text); margin-right: 5px; }
+        button:hover { filter: brightness(1.1); }
+        #log { border: 1px solid var(--border-color); padding: 10px; background: var(--bg-panel); margin-top: 5px; font-size: 0.9em; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="theme-business">
+
+    <div class="header">
+        <strong>FFDec Lint</strong>
+        <select onchange="document.body.className = 'theme-' + this.value">
+            <option value="business">Business</option>
+            <option value="oceanic">Oceanic</option>
+            <option value="autumn">Autumn</option>
+            <option value="business-black-steel">Business Black Steel</option>
+            <option value="business-blue-steel">Business Blue Steel</option>
+            <option value="challenger-deep">Challenger Deep</option>
+            <option value="creme">Creme</option>
+            <option value="creme-coffee">Creme Coffee</option>
+            <option value="moderate">Moderate</option>
+            <option value="dust">Dust</option>
+            <option value="dust-coffee">Dust Coffee</option>
+            <option value="emerald-dusk">Emerald Dusk</option>
+            <option value="gemini">Gemini</option>
+            <option value="graphite">Graphite</option>
+            <option value="graphite-aqua">Graphite Aqua</option>
+            <option value="graphite-glass">Graphite Glass</option>
+            <option value="magellan">Magellan</option>
+            <option value="mariner">Mariner</option>
+            <option value="mist-aqua">Mist Aqua</option>
+            <option value="mist-silver">Mist Silver</option>
+            <option value="nebula">Nebula</option>
+            <option value="nebula-brick-wall">Nebula Brick Wall</option>
+            <option value="office-black-2007">Office Black 2007</option>
+            <option value="office-blue-2007">Office Blue 2007</option>
+            <option value="office-silver-2007">Office Silver 2007</option>
+            <option value="raven-sahara">Raven Sahara</option>
+            <option value="twilight">Twilight</option>
+        </select>
+    </div>
+
+    <div class="toolbar">
+        <button id="modeBtn" onclick="toggleMode()">Mode: ActionScript</button>
+        
+        <span id="as-tools">
+            <button onclick="sanitize()">1. Strip Metadata</button>
+            <button onclick="checkStructure()">2. Check Braces</button>
+        </span>
+
+        <span id="pcode-tools" class="hidden">
+            <button onclick="verifyPCode()">1. Verify Syntax</button>
+            <button onclick="cleanLabels()">2. Clean Labels</button>
+        </span>
+
+        <button onclick="copyToClipboard()">Copy to Clipboard</button>
+    </div>
+
+    <textarea id="code" placeholder="Paste your ActionScript code here..."></textarea>
+    
+    <div id="log">Status: Ready.</div>
+
+    <script>
+        let isPCode = false;
+        let contentAS = "";
+        let contentPCode = "";
+
+        function toggleMode() {
+            const area = document.getElementById('code');
+            const btn = document.getElementById('modeBtn');
+            const asTools = document.getElementById('as-tools');
+            const pcodeTools = document.getElementById('pcode-tools');
+            
+            // Save current state
+            if (isPCode) { contentPCode = area.value; } 
+            else { contentAS = area.value; }
+
+            isPCode = !isPCode;
+
+            // Load state and toggle visibility
+            if (isPCode) {
+                area.value = contentPCode;
+                btn.innerText = "Mode: P-code";
+                area.placeholder = "Paste P-code (Bytecode) here...";
+                asTools.classList.add('hidden');
+                pcodeTools.classList.remove('hidden');
+                log("Switched to P-code mode.", "orange");
+            } else {
+                area.value = contentAS;
+                btn.innerText = "Mode: ActionScript";
+                area.placeholder = "Paste your ActionScript code here...";
+                asTools.classList.remove('hidden');
+                pcodeTools.classList.add('hidden');
+                log("Switched to ActionScript mode.", "green");
+            }
+        }
+
+        // P-Code Specific Logic
+        function verifyPCode() {
+            let code = document.getElementById('code').value;
+            // Simple validation: check if it contains typical P-code instructions
+            const validPatterns = /push|pop|getlocal|setlocal|callproperty|findpropstrict/i;
+            if (validPatterns.test(code)) {
+                log("P-code Syntax looks valid (found common instructions).", "green");
+            } else {
+                log("Syntax Warning: No standard bytecode instructions detected.", "red");
+            }
+        }
+
+        function cleanLabels() {
+            let code = document.getElementById('code').value;
+            // Simple example: replace generic 'label' tags
+            document.getElementById('code').value = code.replace(/label\d+/g, 'label');
+            log("Labels normalized.", "green");
+        }
+
+        // Existing AS Logic
+        function log(msg, color) { const div = document.getElementById('log'); div.innerText = "Status: " + msg; div.style.color = color || 'inherit'; }
+
+        function sanitize() {
+            let code = document.getElementById('code').value;
+            const pattern = /\/\*\*[\s\S]*?@identifier[\s\S]*?\*\//gm;
+            document.getElementById('code').value = code.replace(pattern, '');
+            log("Metadata stripped successfully!", "green");
+        }
+
+        function checkStructure() {
+            let code = document.getElementById('code').value;
+            let open = (code.match(/{/g) || []).length;
+            let close = (code.match(/}/g) || []).length;
+            if (open !== close) log(`STRUCTURAL ERROR: Open '{' (${open}) vs Close '}' (${close})`, "red");
+            else log("Structure OK (Braces balanced).", "green");
+        }
+
+        function copyToClipboard() {
+            const code = document.getElementById('code');
+            code.select();
+            document.execCommand('copy');
+            log("Copied to clipboard!", "green");
+        }
+    </script>
+</body>
+</html>
