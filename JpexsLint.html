@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FFDec Lint (Full Theme Library)</title>
+    <title>FFDec Lint (Highlighted Errors)</title>
     <style>
         :root {
             --bg-main: #d4d0c8; --bg-panel: #ffffff; --text-main: #000000;
             --border-color: #808080; --toolbar-bg: #ece9d8;
             --btn-bg: #e1dfd0; --btn-border: #000000; --btn-text: #000000;
-            --err-bg: #f8d7da;
+            --err-bg: #ffcccc; /* Light Red Highlight */
         }
 
-        /* --- ALL THEMES RESTORED --- */
+        /* --- THEME DEFINITIONS --- */
         .theme-oceanic { --bg-main: #67a1c8; --bg-panel: #e0f0ff; --text-main: #003366; --toolbar-bg: #4a8bb8; --btn-bg: #bcd8ea; --btn-border: #4a8bb8; --btn-text: #000; }
         .theme-autumn { --bg-main: #d8a15e; --bg-panel: #fff0d9; --text-main: #5d3a1a; --toolbar-bg: #c18844; --btn-bg: #f5d3a0; --btn-border: #8b5a2b; --btn-text: #5d3a1a; }
         .theme-business { --bg-main: #c0c0c0; --bg-panel: #ffffff; --text-main: #000000; --toolbar-bg: #e0e0e0; --btn-bg: #ececec; --btn-border: #767676; --btn-text: #000; }
@@ -46,7 +46,7 @@
         .editor-container { display: flex; border: 1px solid var(--border-color); background: var(--bg-panel); min-height: 350px; }
         #line-numbers { width: 40px; background: #e9e9e9; color: #888; text-align: right; padding: 10px 5px; font-family: 'Consolas', monospace; font-size: 14px; user-select: none; line-height: 1.5; }
         #code { flex-grow: 1; padding: 10px; font-family: 'Consolas', monospace; font-size: 14px; white-space: pre; overflow-x: auto; outline: none; line-height: 1.5; color: var(--text-main); }
-        .error-line { background-color: var(--err-bg); display: block; width: 100%; }
+        .error-line { background-color: var(--err-bg); display: block; }
 
         .toolbar { background: var(--toolbar-bg); padding: 10px; border: 1px solid var(--border-color); margin-bottom: 5px; display: flex; flex-wrap: wrap; gap: 5px; }
         button { background: var(--btn-bg); border: 1px solid var(--btn-border); padding: 5px 15px; cursor: pointer; color: var(--btn-text); }
@@ -107,7 +107,7 @@
 
     <div class="editor-container">
         <div id="line-numbers">1</div>
-        <div id="code" contenteditable="plaintext-only" spellcheck="false" oninput="updateLineNumbers()"></div>
+        <div id="code" contenteditable="true" spellcheck="false" oninput="updateLineNumbers()"></div>
     </div>
     
     <div id="log">Status: Ready.</div>
@@ -141,6 +141,7 @@
             const codeEl = document.getElementById('code');
             let lines = codeEl.innerText.split('\n');
             if (lineIndex >= 0 && lineIndex < lines.length) {
+                // Apply the span class
                 lines[lineIndex] = `<span class="error-line">${lines[lineIndex]}</span>`;
                 codeEl.innerHTML = lines.join('\n');
                 log("Error highlighted on line " + (lineIndex + 1), "red");
@@ -149,6 +150,7 @@
 
         function clearFormatting() {
             const codeEl = document.getElementById('code');
+            // Reset to plain text to remove spans
             codeEl.innerText = codeEl.innerText;
             log("Formatting cleared.", "black");
         }
@@ -172,13 +174,16 @@
 
         function log(msg, color) { const div = document.getElementById('log'); div.innerText = "Status: " + msg; div.style.color = color || 'inherit'; }
 
-        // --- Core Functions ---
+        // --- Logic Functions ---
         function checkStructure() {
-            let code = document.getElementById('code').innerText;
-            let open = (code.match(/{/g) || []).length;
-            let close = (code.match(/}/g) || []).length;
+            let text = document.getElementById('code').innerText;
+            let lines = text.split('\n');
+            let open = (text.match(/{/g) || []).length;
+            let close = (text.match(/}/g) || []).length;
+            
             if (open !== close) {
-                highlightError(code.split('\n').length - 1);
+                // Highlight last line as default error anchor
+                highlightError(lines.length - 1);
                 log(`STRUCTURAL ERROR: Open '{' (${open}) vs Close '}' (${close})`, "red");
             } else log("Structure OK.", "green");
         }
