@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FFDec Lint (Persistent & Highlighted)</title>
+    <title>FFDec Lint (Fixed UI)</title>
     <style>
         /* Base Defaults */
         :root {
             --bg-main: #d4d0c8; --bg-panel: #ffffff; --text-main: #000000;
             --border-color: #808080; --toolbar-bg: #ece9d8;
             --btn-bg: #e1dfd0; --btn-border: #000000; --btn-text: #000000;
-            --err-bg: #ff9999; /* Red highlight */
         }
 
         /* --- THEME DEFINITIONS --- */
@@ -44,25 +43,23 @@
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-main); color: var(--text-main); padding: 15px; margin: 0; transition: background 0.3s; }
         .header { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; }
         
-        .editor-container { display: flex; border: 1px solid var(--border-color); background: var(--bg-panel); min-height: 350px; }
-        #line-numbers { width: 40px; background: #e9e9e9; color: #888; text-align: right; padding: 10px 5px; font-family: 'Consolas', monospace; font-size: 14px; user-select: none; line-height: 1.5; }
-        #code { flex-grow: 1; padding: 10px; font-family: 'Consolas', monospace; font-size: 14px; white-space: pre-wrap; overflow-x: auto; outline: none; line-height: 1.5; color: var(--text-main); }
+        /* The Fix: Replaced textarea with a contenteditable div */
+        #code { width: 100%; height: 350px; font-family: 'Consolas', monospace; background-color: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-color); padding: 10px; box-sizing: border-box; overflow-y: auto; outline: none; white-space: pre-wrap; }
         
-        /* The CSS fix for error highlights */
-        .error-line { background-color: var(--err-bg) !important; display: block !important; width: 100% !important; border-radius: 3px; }
+        /* The Error Highlight class */
+        .error-line { background-color: #ff9999 !important; display: block; width: 100%; }
 
-        .toolbar { background: var(--toolbar-bg); padding: 10px; border: 1px solid var(--border-color); margin-bottom: 5px; display: flex; flex-wrap: wrap; gap: 5px; }
-        button { background: var(--btn-bg); border: 1px solid var(--btn-border); padding: 5px 15px; cursor: pointer; color: var(--btn-text); }
+        .toolbar { background: var(--toolbar-bg); padding: 10px; border: 1px solid var(--border-color); margin-bottom: 5px; }
+        button { background: var(--btn-bg); border: 1px solid var(--btn-border); padding: 5px 15px; cursor: pointer; color: var(--btn-text); margin-right: 5px; }
         button:hover { filter: brightness(1.1); }
         #log { border: 1px solid var(--border-color); padding: 10px; background: var(--bg-panel); margin-top: 5px; font-size: 0.9em; }
-        .hidden { display: none; }
     </style>
 </head>
 <body class="theme-business">
 
     <div class="header">
         <strong>FFDec Lint</strong>
-        <select id="theme-select" onchange="changeTheme(this.value)">
+        <select onchange="document.body.className = 'theme-' + this.value">
             <option value="business">Business</option>
             <option value="oceanic">Oceanic</option>
             <option value="autumn">Autumn</option>
@@ -95,149 +92,71 @@
 
     <div class="toolbar">
         <button id="modeBtn" onclick="toggleMode()">Mode: ActionScript</button>
-        <span id="as-tools">
-            <button onclick="sanitize()">Strip Metadata</button>
-            <button onclick="checkStructure()">Check Braces</button>
-            <button onclick="stripTraces()">Strip Traces</button>
-        </span>
-        <span id="pcode-tools" class="hidden">
-            <button onclick="verifyPCode()">Verify Syntax</button>
-            <button onclick="cleanLabels()">Clean Labels</button>
-        </span>
-        <button onclick="copyToClipboard()">Copy</button>
-        <button onclick="clearFormatting()" style="color:red">Clear Errors</button>
+        <button onclick="sanitize()">1. Strip Metadata</button>
+        <button onclick="checkStructure()">2. Check Braces</button>
+        <button onclick="copyToClipboard()">Copy to Clipboard</button>
     </div>
 
-    <div class="editor-container">
-        <div id="line-numbers">1</div>
-        <div id="code" contenteditable="true" spellcheck="false" oninput="updateLineNumbers()"></div>
-    </div>
+    <div id="code" contenteditable="true" placeholder="Paste your ActionScript code here..."></div>
     
     <div id="log">Status: Ready.</div>
 
     <script>
-        // --- Theme Persistence ---
-        function changeTheme(themeName) {
-            document.body.className = 'theme-' + themeName;
-            localStorage.setItem('ffdec-saved-theme', themeName);
-        }
-
-        window.onload = () => {
-            const savedTheme = localStorage.getItem('ffdec-saved-theme') || 'business';
-            document.body.className = 'theme-' + savedTheme;
-            document.getElementById('theme-select').value = savedTheme;
-            updateLineNumbers();
-        };
-
-        // --- Editor Logic ---
         let isPCode = false;
-
-        function updateLineNumbers() {
-            const code = document.getElementById('code');
-            const lines = code.innerText.split('\n').length;
-            let numbers = "";
-            for (let i = 1; i <= lines; i++) numbers += i + "<br>";
-            document.getElementById('line-numbers').innerHTML = numbers;
-        }
-
-        function highlightError(lineIndex) {
-            const codeEl = document.getElementById('code');
-            let rawText = codeEl.innerText;
-            let lines = rawText.split('\n');
-            
-            if (lineIndex >= 0 && lineIndex < lines.length) {
-                // Apply the highlight
-                lines[lineIndex] = `<span class="error-line">${lines[lineIndex]}</span>`;
-                codeEl.innerHTML = lines.join('\n');
-            }
-        }
-
-        function clearFormatting() {
-            const codeEl = document.getElementById('code');
-            codeEl.innerText = codeEl.innerText; 
-            updateLineNumbers();
-            log("Formatting cleared.", "black");
-        }
 
         function toggleMode() {
             isPCode = !isPCode;
             const btn = document.getElementById('modeBtn');
-            const asTools = document.getElementById('as-tools');
-            const pcodeTools = document.getElementById('pcode-tools');
-            
+            const area = document.getElementById('code');
             if (isPCode) {
                 btn.innerText = "Mode: P-code";
-                asTools.classList.add('hidden');
-                pcodeTools.classList.remove('hidden');
+                log("Switched to P-code mode (Brace check disabled).", "orange");
             } else {
                 btn.innerText = "Mode: ActionScript";
-                asTools.classList.remove('hidden');
-                pcodeTools.classList.add('hidden');
+                log("Switched to ActionScript mode.", "green");
             }
         }
 
         function log(msg, color) { const div = document.getElementById('log'); div.innerText = "Status: " + msg; div.style.color = color || 'inherit'; }
 
-        // --- Logic Functions ---
-        function checkStructure() {
-            clearFormatting(); // Clear old highlights first
-            let code = document.getElementById('code').innerText;
-            let lines = code.split('\n');
-            let balance = 0;
-            let errorLine = -1;
-
-            for (let i = 0; i < lines.length; i++) {
-                let open = (lines[i].match(/{/g) || []).length;
-                let close = (lines[i].match(/}/g) || []).length;
-                balance += (open - close);
-
-                if (balance < 0) {
-                    errorLine = i;
-                    break;
-                }
-            }
-
-            if (errorLine !== -1) {
-                highlightError(errorLine);
-                log(`STRUCTURAL ERROR on line ${errorLine + 1}: Too many '}'`, "red");
-            } else if (balance > 0) {
-                highlightError(lines.length - 1);
-                log(`STRUCTURAL ERROR: Unclosed '{' (Missing ${balance} closing braces).`, "red");
-            } else {
-                log("Structure OK (Braces balanced).", "green");
-            }
-        }
-
-        function verifyPCode() {
-            let code = document.getElementById('code').innerText;
-            if (!/push|pop|call/i.test(code)) {
-                highlightError(0);
-                log("Syntax Error: No bytecode detected.", "red");
-            } else log("Syntax OK.", "green");
-        }
-
         function sanitize() {
             let code = document.getElementById('code').innerText;
-            document.getElementById('code').innerText = code.replace(/\/\*\*[\s\S]*?@identifier[\s\S]*?\*\//gm, '');
-            updateLineNumbers();
+            const pattern = /\/\*\*[\s\S]*?@identifier[\s\S]*?\*\//gm;
+            document.getElementById('code').innerText = code.replace(pattern, '');
+            log("Metadata stripped successfully!", "green");
         }
 
-        function stripTraces() {
-            let code = document.getElementById('code').innerText;
-            document.getElementById('code').innerText = code.replace(/trace\(.*?\);?/g, '');
-            updateLineNumbers();
-        }
+        // Updated checkStructure to fix the highlighting glitch
+        function checkStructure() {
+            if (isPCode) {
+                log("Skipping check: Braces are not applicable for P-code.", "orange");
+                return;
+            }
 
-        function cleanLabels() {
-            let code = document.getElementById('code').innerText;
-            document.getElementById('code').innerText = code.replace(/label\d+/g, 'label');
-            updateLineNumbers();
+            // Get clean text
+            let codeDiv = document.getElementById('code');
+            let text = codeDiv.innerText;
+            let lines = text.split('\n');
+            
+            let open = (text.match(/{/g) || []).length;
+            let close = (text.match(/}/g) || []).length;
+
+            if (open !== close) {
+                // Highlight the last line as the error location
+                let lastLineIndex = lines.length - 1;
+                lines[lastLineIndex] = `<span class="error-line">${lines[lastLineIndex]}</span>`;
+                codeDiv.innerHTML = lines.join('\n');
+                log(`STRUCTURAL ERROR: Open '{' (${open}) vs Close '}' (${close})`, "red");
+            } else {
+                codeDiv.innerText = text; // Reset formatting
+                log("Structure OK (Braces balanced).", "green");
+            }
         }
 
         function copyToClipboard() {
             const code = document.getElementById('code').innerText;
             navigator.clipboard.writeText(code);
-            log("Copied!", "green");
+            log("Copied to clipboard!", "green");
         }
     </script>
 </body>
