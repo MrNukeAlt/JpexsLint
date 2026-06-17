@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FFDec Lint (Persistent Themes & Error Highlighting)</title>
+    <title>FFDec Lint (Persistent & Highlighted)</title>
     <style>
         /* Base Defaults */
         :root {
             --bg-main: #d4d0c8; --bg-panel: #ffffff; --text-main: #000000;
             --border-color: #808080; --toolbar-bg: #ece9d8;
             --btn-bg: #e1dfd0; --btn-border: #000000; --btn-text: #000000;
-            --err-bg: #ffcccc; /* Light Red Highlight */
+            --err-bg: #ffcccc; /* Light Red */
         }
 
         /* --- THEME DEFINITIONS --- */
@@ -47,7 +47,8 @@
         .editor-container { display: flex; border: 1px solid var(--border-color); background: var(--bg-panel); min-height: 350px; }
         #line-numbers { width: 40px; background: #e9e9e9; color: #888; text-align: right; padding: 10px 5px; font-family: 'Consolas', monospace; font-size: 14px; user-select: none; line-height: 1.5; }
         #code { flex-grow: 1; padding: 10px; font-family: 'Consolas', monospace; font-size: 14px; white-space: pre; overflow-x: auto; outline: none; line-height: 1.5; color: var(--text-main); }
-        .error-line { background-color: var(--err-bg); display: block; }
+        
+        .error-line { background-color: var(--err-bg); display: block; width: 100%; border-radius: 3px; }
 
         .toolbar { background: var(--toolbar-bg); padding: 10px; border: 1px solid var(--border-color); margin-bottom: 5px; display: flex; flex-wrap: wrap; gap: 5px; }
         button { background: var(--btn-bg); border: 1px solid var(--btn-border); padding: 5px 15px; cursor: pointer; color: var(--btn-text); }
@@ -121,7 +122,6 @@
         }
 
         window.onload = () => {
-            // Apply saved theme
             const savedTheme = localStorage.getItem('ffdec-saved-theme') || 'business';
             document.body.className = 'theme-' + savedTheme;
             document.getElementById('theme-select').value = savedTheme;
@@ -141,6 +141,7 @@
 
         function highlightError(lineIndex) {
             const codeEl = document.getElementById('code');
+            // Extract clean text, split into lines, wrap target line, rejoin
             let lines = codeEl.innerText.split('\n');
             if (lineIndex >= 0 && lineIndex < lines.length) {
                 lines[lineIndex] = `<span class="error-line">${lines[lineIndex]}</span>`;
@@ -151,7 +152,7 @@
 
         function clearFormatting() {
             const codeEl = document.getElementById('code');
-            codeEl.innerText = codeEl.innerText;
+            codeEl.innerText = codeEl.innerText; // Removes all HTML tags
             updateLineNumbers();
             log("Formatting cleared.", "black");
         }
