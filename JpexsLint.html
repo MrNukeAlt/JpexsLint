@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FFDec Lint (Expanded Checks)</title>
+    <title>FFDec Lint (Full Theme Library)</title>
     <style>
-        /* Base Defaults */
         :root {
             --bg-main: #d4d0c8; --bg-panel: #ffffff; --text-main: #000000;
             --border-color: #808080; --toolbar-bg: #ece9d8;
             --btn-bg: #e1dfd0; --btn-border: #000000; --btn-text: #000000;
+            --err-bg: #f8d7da;
         }
 
-        /* --- THEME DEFINITIONS --- */
+        /* --- ALL THEMES RESTORED --- */
         .theme-oceanic { --bg-main: #67a1c8; --bg-panel: #e0f0ff; --text-main: #003366; --toolbar-bg: #4a8bb8; --btn-bg: #bcd8ea; --btn-border: #4a8bb8; --btn-text: #000; }
         .theme-autumn { --bg-main: #d8a15e; --bg-panel: #fff0d9; --text-main: #5d3a1a; --toolbar-bg: #c18844; --btn-bg: #f5d3a0; --btn-border: #8b5a2b; --btn-text: #5d3a1a; }
         .theme-business { --bg-main: #c0c0c0; --bg-panel: #ffffff; --text-main: #000000; --toolbar-bg: #e0e0e0; --btn-bg: #ececec; --btn-border: #767676; --btn-text: #000; }
@@ -42,7 +42,12 @@
 
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-main); color: var(--text-main); padding: 15px; margin: 0; transition: background 0.3s; }
         .header { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; }
-        textarea { width: 100%; height: 350px; font-family: 'Consolas', monospace; background-color: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-color); padding: 10px; box-sizing: border-box; }
+        
+        .editor-container { display: flex; border: 1px solid var(--border-color); background: var(--bg-panel); min-height: 350px; }
+        #line-numbers { width: 40px; background: #e9e9e9; color: #888; text-align: right; padding: 10px 5px; font-family: 'Consolas', monospace; font-size: 14px; user-select: none; line-height: 1.5; }
+        #code { flex-grow: 1; padding: 10px; font-family: 'Consolas', monospace; font-size: 14px; white-space: pre; overflow-x: auto; outline: none; line-height: 1.5; color: var(--text-main); }
+        .error-line { background-color: var(--err-bg); display: block; width: 100%; }
+
         .toolbar { background: var(--toolbar-bg); padding: 10px; border: 1px solid var(--border-color); margin-bottom: 5px; display: flex; flex-wrap: wrap; gap: 5px; }
         button { background: var(--btn-bg); border: 1px solid var(--btn-border); padding: 5px 15px; cursor: pointer; color: var(--btn-text); }
         button:hover { filter: brightness(1.1); }
@@ -54,7 +59,7 @@
 
     <div class="header">
         <strong>FFDec Lint</strong>
-        <select onchange="document.body.className = 'theme-' + this.value">
+        <select id="theme-select" onchange="changeTheme(this.value)">
             <option value="business">Business</option>
             <option value="oceanic">Oceanic</option>
             <option value="autumn">Autumn</option>
@@ -87,122 +92,124 @@
 
     <div class="toolbar">
         <button id="modeBtn" onclick="toggleMode()">Mode: ActionScript</button>
-        
         <span id="as-tools">
             <button onclick="sanitize()">Strip Metadata</button>
             <button onclick="checkStructure()">Check Braces</button>
             <button onclick="stripTraces()">Strip Traces</button>
-            <button onclick="findTodos()">Find TODOs</button>
         </span>
-
         <span id="pcode-tools" class="hidden">
             <button onclick="verifyPCode()">Verify Syntax</button>
             <button onclick="cleanLabels()">Clean Labels</button>
-            <button onclick="countInstructions()">Count Instructions</button>
-            <button onclick="flagNew()">Flag 'new'</button>
         </span>
-
-        <button onclick="copyToClipboard()">Copy to Clipboard</button>
+        <button onclick="copyToClipboard()">Copy</button>
+        <button onclick="clearFormatting()" style="color:red">Clear Errors</button>
     </div>
 
-    <textarea id="code" placeholder="Paste your ActionScript code here..."></textarea>
+    <div class="editor-container">
+        <div id="line-numbers">1</div>
+        <div id="code" contenteditable="plaintext-only" spellcheck="false" oninput="updateLineNumbers()"></div>
+    </div>
     
     <div id="log">Status: Ready.</div>
 
     <script>
+        // --- Theme Persistence ---
+        function changeTheme(themeName) {
+            document.body.className = 'theme-' + themeName;
+            localStorage.setItem('ffdec-saved-theme', themeName);
+        }
+
+        window.onload = () => {
+            const savedTheme = localStorage.getItem('ffdec-saved-theme') || 'business';
+            document.body.className = 'theme-' + savedTheme;
+            document.getElementById('theme-select').value = savedTheme;
+            updateLineNumbers();
+        };
+
+        // --- Editor Logic ---
         let isPCode = false;
-        let contentAS = "";
-        let contentPCode = "";
+
+        function updateLineNumbers() {
+            const code = document.getElementById('code');
+            const lines = code.innerText.split('\n').length;
+            let numbers = "";
+            for (let i = 1; i <= lines; i++) numbers += i + "<br>";
+            document.getElementById('line-numbers').innerHTML = numbers;
+        }
+
+        function highlightError(lineIndex) {
+            const codeEl = document.getElementById('code');
+            let lines = codeEl.innerText.split('\n');
+            if (lineIndex >= 0 && lineIndex < lines.length) {
+                lines[lineIndex] = `<span class="error-line">${lines[lineIndex]}</span>`;
+                codeEl.innerHTML = lines.join('\n');
+                log("Error highlighted on line " + (lineIndex + 1), "red");
+            }
+        }
+
+        function clearFormatting() {
+            const codeEl = document.getElementById('code');
+            codeEl.innerText = codeEl.innerText;
+            log("Formatting cleared.", "black");
+        }
 
         function toggleMode() {
-            const area = document.getElementById('code');
+            isPCode = !isPCode;
             const btn = document.getElementById('modeBtn');
             const asTools = document.getElementById('as-tools');
             const pcodeTools = document.getElementById('pcode-tools');
             
-            if (isPCode) { contentPCode = area.value; } 
-            else { contentAS = area.value; }
-
-            isPCode = !isPCode;
-
             if (isPCode) {
-                area.value = contentPCode;
                 btn.innerText = "Mode: P-code";
-                area.placeholder = "Paste P-code (Bytecode) here...";
                 asTools.classList.add('hidden');
                 pcodeTools.classList.remove('hidden');
-                log("Switched to P-code mode.", "orange");
             } else {
-                area.value = contentAS;
                 btn.innerText = "Mode: ActionScript";
-                area.placeholder = "Paste your ActionScript code here...";
                 asTools.classList.remove('hidden');
                 pcodeTools.classList.add('hidden');
-                log("Switched to ActionScript mode.", "green");
             }
-        }
-
-        /* --- AS Tools --- */
-        function sanitize() {
-            let code = document.getElementById('code').value;
-            const pattern = /\/\*\*[\s\S]*?@identifier[\s\S]*?\*\//gm;
-            document.getElementById('code').value = code.replace(pattern, '');
-            log("Metadata stripped.", "green");
-        }
-
-        function checkStructure() {
-            let code = document.getElementById('code').value;
-            let open = (code.match(/{/g) || []).length;
-            let close = (code.match(/}/g) || []).length;
-            if (open !== close) log(`STRUCTURAL ERROR: Open '{' (${open}) vs Close '}' (${close})`, "red");
-            else log("Structure OK (Braces balanced).", "green");
-        }
-
-        function stripTraces() {
-            let code = document.getElementById('code').value;
-            document.getElementById('code').value = code.replace(/trace\(.*?\);?/g, '');
-            log("Removed all trace() calls.", "green");
-        }
-
-        function findTodos() {
-            let code = document.getElementById('code').value;
-            const matches = code.match(/\/\/.*TODO.*/gi);
-            if(matches) log(`Found ${matches.length} TODO(s).`, "blue");
-            else log("No TODOs found.", "green");
-        }
-
-        /* --- P-code Tools --- */
-        function verifyPCode() {
-            let code = document.getElementById('code').value;
-            const validPatterns = /push|pop|getlocal|setlocal|callproperty|findpropstrict/i;
-            if (validPatterns.test(code)) log("Syntax valid (bytecode patterns found).", "green");
-            else log("Syntax Warning: No standard bytecode instructions detected.", "red");
-        }
-
-        function cleanLabels() {
-            let code = document.getElementById('code').value;
-            document.getElementById('code').value = code.replace(/label\d+/g, 'label');
-            log("Labels normalized.", "green");
-        }
-
-        function countInstructions() {
-            let lines = document.getElementById('code').value.split('\n').filter(line => line.trim() !== "");
-            log(`Found ${lines.length} instructions.`, "blue");
-        }
-
-        function flagNew() {
-            let code = document.getElementById('code').value;
-            let matches = (code.match(/\bnew\b/g) || []).length;
-            log(`Found ${matches} 'new' memory allocations.`, matches > 5 ? "red" : "green");
         }
 
         function log(msg, color) { const div = document.getElementById('log'); div.innerText = "Status: " + msg; div.style.color = color || 'inherit'; }
 
+        // --- Core Functions ---
+        function checkStructure() {
+            let code = document.getElementById('code').innerText;
+            let open = (code.match(/{/g) || []).length;
+            let close = (code.match(/}/g) || []).length;
+            if (open !== close) {
+                highlightError(code.split('\n').length - 1);
+                log(`STRUCTURAL ERROR: Open '{' (${open}) vs Close '}' (${close})`, "red");
+            } else log("Structure OK.", "green");
+        }
+
+        function verifyPCode() {
+            let code = document.getElementById('code').innerText;
+            if (!/push|pop|call/i.test(code)) {
+                highlightError(0);
+                log("Syntax Error: No bytecode detected.", "red");
+            } else log("Syntax OK.", "green");
+        }
+
+        function sanitize() {
+            let code = document.getElementById('code').innerText;
+            document.getElementById('code').innerText = code.replace(/\/\*\*[\s\S]*?@identifier[\s\S]*?\*\//gm, '');
+        }
+
+        function stripTraces() {
+            let code = document.getElementById('code').innerText;
+            document.getElementById('code').innerText = code.replace(/trace\(.*?\);?/g, '');
+        }
+
+        function cleanLabels() {
+            let code = document.getElementById('code').innerText;
+            document.getElementById('code').innerText = code.replace(/label\d+/g, 'label');
+        }
+
         function copyToClipboard() {
-            const code = document.getElementById('code');
-            code.select();
-            document.execCommand('copy');
-            log("Copied to clipboard!", "green");
+            const code = document.getElementById('code').innerText;
+            navigator.clipboard.writeText(code);
+            log("Copied!", "green");
         }
     </script>
 </body>
